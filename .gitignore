@@ -27,3 +27,4 @@ _testmain.go
 # bin files
 exowner
 findowner
+genpatch
