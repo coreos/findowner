@@ -23,6 +23,8 @@ var (
 
 var now time.Time
 
+var ignoredPrefixList []string
+
 func ExitError(err error) {
 	fmt.Fprintln(os.Stderr, err)
 	os.Exit(1)
@@ -36,6 +38,17 @@ func init() {
 	flag.Parse()
 
 	now = time.Now()
+
+	// TODO: parse from a file
+	ignoredPrefixList = []string{
+		"vendor",
+		"contrib/mesos/",
+		// exclude generated code: `find . | grep "generated"` + some guessing
+		"staging",
+		"cmd/libs/go2idl/client-gen",
+		"federation/client/clientset_generated",
+		"pkg/client/clientset_generated",
+	}
 }
 
 func main() {
@@ -49,17 +62,16 @@ func main() {
 
 	client := github.NewClient(tc)
 
-	// TODO: ignore list, e.g. "*generated*", "*proto*".
 	fetchOwners(client, topLevelDir)
 }
 
 func fetchOwners(client *github.Client, dir string) {
-	//log.Println("Collecting owners for path:", dir)
 	_, directoryContent, _, err := client.Repositories.GetContents(githubOrg, githubRepo, dir, &github.RepositoryContentGetOptions{})
 	if err != nil {
 		ExitError(err)
 	}
 	fetchTopCommitters(client, dir, 3)
+
 	for _, c := range directoryContent {
 		if c.Type != nil && *c.Type == "dir" {
 			fetchOwners(client, *c.Path)
@@ -68,9 +80,15 @@ func fetchOwners(client *github.Client, dir string) {
 }
 
 func fetchTopCommitters(client *github.Client, dir string, limit int) {
+	for _, prefix := range ignoredPrefixList {
+		if strings.HasPrefix(dir, prefix) {
+			return
+		}
+	}
+
 	opt := &github.CommitsListOptions{
 		Path:  dir,
-		Since: now.AddDate(0, -6, 0),
+		Since: now.AddDate(0, -12, 0),
 		ListOptions: github.ListOptions{
 			PerPage: 200,
 		},
@@ -82,11 +100,7 @@ func fetchTopCommitters(client *github.Client, dir string, limit int) {
 			ExitError(err)
 		}
 		for _, c := range commits {
-			if c.Commit.Message == nil {
-				log.Printf("Commit.Message is nil, unexpected commit: %v\n", c.Commit.String())
-				continue
-			}
-			if strings.HasPrefix(*c.Commit.Message, "Merge pull request") {
+			if c.Commit.Message != nil && strings.HasPrefix(*c.Commit.Message, "Merge pull request") {
 				continue
 			}
 			if c.Author == nil || c.Author.Login == nil {
@@ -111,7 +125,9 @@ func fetchTopCommitters(client *github.Client, dir string, limit int) {
 	for i := 0; i < limit && i < len(cr); i++ {
 		res = append(res, cr[i].ID)
 	}
-	fmt.Printf("path: %s, owners: %v\n", dir, res)
+	if len(res) > 0 {
+		fmt.Printf("path: %s, reviewers: %v\n", dir, res)
+	}
 }
 
 type committer struct {

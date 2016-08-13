@@ -30,7 +30,17 @@ func main() {
 	if gitRepo == "" {
 		ExitError(errors.New("Need to set git repo"))
 	}
-	err := filepath.Walk(path.Join(gitRepo, topDir), func(path string, info os.FileInfo, err error) error {
+	basePath := path.Join(gitRepo, topDir)
+	err := filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+		p, err := filepath.Rel(gitRepo, path)
+		if err != nil {
+			return err
+		}
+		for _, ignoredPrefix := range []string{"_output/", "vendor/"} {
+			if strings.HasPrefix(p, ignoredPrefix) {
+				return nil
+			}
+		}
 		if info.IsDir() {
 			return nil
 		}
@@ -42,10 +52,6 @@ func main() {
 			return err
 		}
 		scanner := bufio.NewScanner(f)
-		p, err := filepath.Rel(gitRepo, path)
-		if err != nil {
-			return err
-		}
 		names := []string{}
 		for scanner.Scan() {
 			line := scanner.Text()
