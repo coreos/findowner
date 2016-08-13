@@ -2,13 +2,11 @@
 
 findowner is used to find the "owner"s of a git directory.
 
-It uses number of commits to rank. The program will pull recent commits excluding "merge" commits. It ranks people by the number of commits they made and select top N (default is 3).
+It uses number of commits to rank. The program will pull past 1 year commits excluding "merge" commits. It ranks people by the number of commits they made and select top N (default is 3).
 
-## Policy
+## Excluded Directories
 
-findowner will try to find top committers with the following policies:
-
-- It will walk from the top to each sub directories recursively excluding following directories:
+It will walk from the top to each sub directories recursively excluding following directories:
 ```
 		"vendor",
 		"contrib/mesos/", // we don't need to go recursively
@@ -19,8 +17,6 @@ findowner will try to find top committers with the following policies:
 		"pkg/client/clientset_generated",
 ```
 This is hardcoded currently.
-
-- It will pull most recent 1 year commits to rank top committers.
 
 ## exowner - existing owners
 
