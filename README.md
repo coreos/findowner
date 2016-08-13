@@ -1,12 +1,15 @@
 # findowner
 
-findowner is used to find the "owner"s of a git directory.
+findowner is used to find the "reviewer"s of a git directory.
 
-It uses number of commits to rank. The program will pull past 1 year commits excluding "merge" commits. It ranks people by the number of commits they made and select top N (default is 3).
+The program uses number of commits to rank. It will pull past 1 year commits excluding "merge" commits. It ranks people by the number of commits they made and select top N (default is 3).
 
-## Excluded Directories
+## Directory Crawling Policy
 
-It will walk from the top to each sub directories recursively excluding following directories:
+The program will walk from the top to each sub directories recursively. It has a global limit on depth (default is 3).
+For example, "./pkg/apis/apps" is allowed, while "./pkg/apis/apps/install" isn't.
+
+It also has rules to exclude following directories:
 ```
 		"vendor",
 		"contrib/mesos/", // we don't need to go recursively

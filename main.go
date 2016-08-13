@@ -25,6 +25,8 @@ var now time.Time
 
 var ignoredPrefixList []string
 
+const levelLimit = 3
+
 func ExitError(err error) {
 	fmt.Fprintln(os.Stderr, err)
 	os.Exit(1)
@@ -62,19 +64,23 @@ func main() {
 
 	client := github.NewClient(tc)
 
-	fetchOwners(client, topLevelDir)
+	fetchOwners(client, topLevelDir, 0)
 }
 
-func fetchOwners(client *github.Client, dir string) {
+func fetchOwners(client *github.Client, dir string, level int) {
 	_, directoryContent, _, err := client.Repositories.GetContents(githubOrg, githubRepo, dir, &github.RepositoryContentGetOptions{})
 	if err != nil {
 		ExitError(err)
 	}
 	fetchTopCommitters(client, dir, 3)
 
+	if level >= levelLimit {
+		return
+	}
+
 	for _, c := range directoryContent {
 		if c.Type != nil && *c.Type == "dir" {
-			fetchOwners(client, *c.Path)
+			fetchOwners(client, *c.Path, level+1)
 		}
 	}
 }
@@ -90,7 +96,7 @@ func fetchTopCommitters(client *github.Client, dir string, limit int) {
 		Path:  dir,
 		Since: now.AddDate(0, -12, 0),
 		ListOptions: github.ListOptions{
-			PerPage: 200,
+			PerPage: 500,
 		},
 	}
 	rank := map[string]int{}
