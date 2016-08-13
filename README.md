@@ -1,25 +1,14 @@
 # findowner
 
-findowner is used to find the "reviewer"s of a git directory.
-
-The program uses number of commits to rank. It will pull past 1 year commits excluding "merge" commits. It ranks people by the number of commits they made and select top N (default is 3).
-
-## Directory Crawling Policy
-
-The program will walk from the top to each sub directories recursively. It has a global limit on depth (default is 3).
-For example, "./pkg/apis/apps" is allowed, while "./pkg/apis/apps/install" isn't.
-
-It also has rules to exclude following directories:
-```
-		"vendor",
-		"contrib/mesos/", // we don't need to go recursively
-		// exclude generated code: `find . | grep "generated"` + some guessing
-		"staging",
-		"cmd/libs/go2idl/client-gen",
-		"federation/client/clientset_generated",
-		"pkg/client/clientset_generated",
-```
-This is hardcoded currently.
+findowner is used to find the "reviewer"s of a git directory:
+- It crawls all directories of given "root" directory.
+  - It has a depth limit (default is 3). For example, given depth limit 3,
+    "./pkg/apis/apps" is allowed, while "./pkg/apis/apps/install" isn't.
+  - It has an excluded list. See "./main.go" `excludedDirList` variable.
+- It selects top committers for each git directory.
+  - It ranks people (identified by github handle) by the number of commits they made.
+  - The commits are pulled from past 1 year history excluding "merge" commits.
+  - It selects top N (default is 3). If there are more than N people having the same number of commits, it outputs them all.
 
 ## exowner - existing owners
 

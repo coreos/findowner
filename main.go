@@ -23,7 +23,7 @@ var (
 
 var now time.Time
 
-var ignoredPrefixList []string
+var excludedDirList []string
 
 const levelLimit = 3
 
@@ -41,8 +41,8 @@ func init() {
 
 	now = time.Now()
 
-	// TODO: parse from a file
-	ignoredPrefixList = []string{
+	// TODO: This is hardcoded currently. parse from a file
+	excludedDirList = []string{
 		"vendor",
 		"contrib/mesos/",
 		// exclude generated code: `find . | grep "generated"` + some guessing
@@ -86,7 +86,7 @@ func fetchOwners(client *github.Client, dir string, level int) {
 }
 
 func fetchTopCommitters(client *github.Client, dir string, limit int) {
-	for _, prefix := range ignoredPrefixList {
+	for _, prefix := range excludedDirList {
 		if strings.HasPrefix(dir, prefix) {
 			return
 		}
@@ -128,8 +128,14 @@ func fetchTopCommitters(client *github.Client, dir string, limit int) {
 	sort.Sort(cr)
 
 	res := []string{}
-	for i := 0; i < limit && i < len(cr); i++ {
+	for i := 0; i < len(cr); i++ {
 		res = append(res, cr[i].ID)
+		if len(res) >= limit {
+			if i+1 < len(cr) && cr[i+1].CommitCount == cr[i].CommitCount {
+				continue
+			}
+			break
+		}
 	}
 	if len(res) > 0 {
 		fmt.Printf("path: %s, reviewers: %v\n", dir, res)
