@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"flag"
 	"io/ioutil"
 	"os"
@@ -17,19 +18,64 @@ func init() {
 }
 
 func patch(path string, rs []string) {
-	p := filepath.Join(gitRepo, path, "REVIEWER")
+	p := filepath.Join(gitRepo, path, "OWNERS")
 	// fmt.Println(p)
 
-	out := strings.Join(rs, "\n")
-	// fmt.Println(out)
+	b := &bytes.Buffer{}
 
-	if err := ioutil.WriteFile(p, []byte(out), 0644); err != nil {
+	if _, err := os.Stat(p); os.IsNotExist(err) {
+		b.WriteString("assignees:\n")
+		for _, r := range rs {
+			b.WriteString("  - ")
+			b.WriteString(r)
+			b.WriteString("\n")
+		}
+
+		err := ioutil.WriteFile(p, b.Bytes(), 0644)
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
+
+	f, err := os.OpenFile(p, os.O_APPEND|os.O_RDWR, 0644)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	names := map[string]struct{}{}
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		line = strings.TrimSpace(line)
+		fields := strings.Fields(line)
+		if len(fields) != 2 || fields[0] != "-" {
+			continue
+		}
+		name := fields[1]
+		names[name] = struct{}{}
+	}
+	if err := scanner.Err(); err != nil {
+		panic(err)
+	}
+
+	for _, r := range rs {
+		if _, ok := names[r]; ok {
+			continue
+		}
+		b.WriteString("  - ")
+		b.WriteString(r)
+		b.WriteString("\n")
+	}
+	_, err = f.Write(b.Bytes())
+	if err != nil {
 		panic(err)
 	}
 }
 
-// cat ../_output/owner.txt | ./genpatch --gitrepo="$GOPATH/src/k8s.io/kubernetes"
-
+// How to run it:
+//   cat $OWNER_FILE | ./genpatch --gitrepo="$GOPATH/src/k8s.io/kubernetes"
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {

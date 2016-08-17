@@ -26,6 +26,7 @@ var now time.Time
 var excludedDirList []string
 
 const levelLimit = 3
+const ownerLimit = 3
 
 func ExitError(err error) {
 	fmt.Fprintln(os.Stderr, err)
@@ -72,7 +73,7 @@ func fetchOwners(client *github.Client, dir string, level int) {
 	if err != nil {
 		ExitError(err)
 	}
-	fetchTopCommitters(client, dir, 3)
+	fetchTopCommitters(client, dir, ownerLimit)
 
 	if level >= levelLimit {
 		return
