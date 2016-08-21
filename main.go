@@ -44,6 +44,7 @@ func init() {
 
 	// TODO: This is hardcoded currently. parse from a file
 	excludedDirList = []string{
+		"Godep",
 		"vendor",
 		"contrib/mesos/",
 		// exclude generated code: `find . | grep "generated"` + some guessing
